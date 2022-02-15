@@ -15,7 +15,7 @@ var db = model.User{
 } // 将用户数据写死在代码里
 
 func (s *UserService) Login(login model.Login) (*model.User, error) {
-	var u *model.User
+	u := &model.User{}
 	if login.Email != db.Email {
 		return nil, errors.LOGIN_UNKNOWN
 	}

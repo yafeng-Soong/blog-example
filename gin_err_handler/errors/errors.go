@@ -26,11 +26,3 @@ func NewError(code int, msg string) *MyError {
 		Code: code,
 	}
 }
-
-func GetError(e *MyError, data interface{}) *MyError {
-	return &MyError{
-		Msg:  e.Msg,
-		Code: e.Code,
-		Data: data,
-	}
-}

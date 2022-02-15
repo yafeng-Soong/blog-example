@@ -21,7 +21,9 @@ func setPulicRouter(r *gin.Engine) {
 		// 产生的一切错误都放到c.Error里
 		// router里就可以不调用c.JSON()返回错误信息
 		if e := c.ShouldBindJSON(&loginVo); e != nil {
-			c.Error(errors.VALID_ERROR)
+			myErr := errors.VALID_ERROR
+			myErr.Data = e.Error()
+			c.Error(myErr)
 			return
 		}
 		u, err := userService.Login(loginVo)
@@ -32,7 +34,7 @@ func setPulicRouter(r *gin.Engine) {
 		session := sessions.Default(c)
 		session.Set("currentUser", u)
 		if e := session.Save(); e != nil {
-			// session保存出错也交给中间件处理
+			// session保存出错也交给中间件处理，非自定义错误
 			c.Error(e)
 			return
 		}
@@ -41,10 +43,10 @@ func setPulicRouter(r *gin.Engine) {
 }
 
 func setPrivateRouter(r *gin.Engine) {
-	r.GET("sayHello", func(c *gin.Context) {
+	r.GET("/sayHello", func(c *gin.Context) {
 		session := sessions.Default(c)
 		user := session.Get("currentUser").(model.User)
-		c.String(http.StatusOK, "Hello"+user.Username)
+		c.String(http.StatusOK, "Hello "+user.Username)
 	})
 }
 
@@ -54,7 +56,7 @@ func main() {
 	r.Use(middleware.ErrorHandler()) // 错误处理中间件放最前面
 	store := cookie.NewStore([]byte("yoursecret"))
 	r.Use(sessions.Sessions("GSESSIONID", store))
-	// 公共路由不需要cookie验证，所以放cookie前注册
+	// 公共路由不需要cookie验证，所以放session中间件前注册
 	setPulicRouter(r)
 	r.Use(middleware.Cookie())
 	setPrivateRouter(r)
