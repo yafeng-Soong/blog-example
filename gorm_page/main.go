@@ -18,7 +18,7 @@ func main() {
 	defer database.Close()
 	r := gin.Default()
 	r.POST("/getPageList", func(c *gin.Context) {
-		var queryVo model.QueryInfo
+		var queryVo model.CityQueryInfo
 		if e := c.ShouldBindJSON(&queryVo); e != nil {
 			c.JSON(http.StatusOK, gin.H{"code": 300, "msg": "参数错误"})
 			return
