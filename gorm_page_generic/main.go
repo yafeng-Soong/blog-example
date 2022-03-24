@@ -34,7 +34,7 @@ func main() {
 		}
 		c.JSON(
 			http.StatusOK,
-			model.Response{Code: 400, Msg: "操做成功", Data: pageResponse},
+			model.Response{Code: 200, Msg: "操做成功", Data: pageResponse},
 		)
 	})
 
@@ -51,7 +51,7 @@ func main() {
 		}
 		c.JSON(
 			http.StatusOK,
-			model.Response{Code: 400, Msg: "操做成功", Data: pageResponse},
+			model.Response{Code: 200, Msg: "操做成功", Data: pageResponse},
 		)
 	})
 	r.Run(":8080")

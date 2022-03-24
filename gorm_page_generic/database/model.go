@@ -21,9 +21,6 @@ func (page *Page[T]) SelectPage(wrapper map[string]interface{}) (e error) {
 		return
 	}
 	e = DB.Model(&model).Where(wrapper).Scopes(Paginate(page)).Find(&page.Data).Error
-	if e != nil {
-		return
-	}
 	return
 }
 

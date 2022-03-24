@@ -15,8 +15,6 @@ func (c *CityService) SelectPageList(queryVo model.CityQueryInfo) (*model.PageRe
 		CurrentPage: queryVo.CurrentPage,
 		PageSize:    queryVo.PageSize,
 	}
-	p.CurrentPage = queryVo.CurrentPage
-	p.PageSize = queryVo.PageSize
 	wrapper := make(map[string]interface{}, 0)
 	if queryVo.CountryCode != "" {
 		wrapper["CountryCode"] = queryVo.CountryCode
