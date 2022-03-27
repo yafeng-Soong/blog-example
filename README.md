@@ -5,3 +5,4 @@
 - gin_err_handler是在Gin中使用中间件处理全局错误的代码，[《在Gin中使用中间件进行全局错误处理》](https://juejin.cn/post/7064770224515448840)
 - gorm_page是使用反射机制对gorm进行分页封装的代码，[《使用反射机制来对Gorm进行分页封装》](https://juejin.cn/post/7067532738940633119)
 - goroutine_test总结了自己对线程、协程的思考，以及对应的使用场景，详见[《实例展示对Go协程的思考，以Leetcode每日一题为例》](https://juejin.cn/post/7068627652579426340)
+- gorm_page_generic使用了泛型（需要Go 1.18版本）来封装Gorm分页，性能要比反射封装高一点，详见[使用Go 1.18对Gorm进行分页封装](https://juejin.cn/post/7078279187471679518)
