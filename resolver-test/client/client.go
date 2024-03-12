@@ -32,14 +32,14 @@ func main() {
 
 	defer conn.Close()
 
-	client := proto.NewHelloClient(conn)
+	client := proto.NewHelloServiceClient(conn)
 	for i := 0; i < 10; i++ {
 		out, err := client.SayHello(context.Background(), &proto.SayHelloRequest{Name: *name})
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 
-		log.Println("echo: ", out.Echo)
+		log.Println("echo: ", out.Hello)
 		time.Sleep(2 * time.Second)
 	}
 }

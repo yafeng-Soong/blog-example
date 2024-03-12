@@ -13,3 +13,15 @@ message SayHelloRequest {
 message SayHelloResponse {
     string hello = 1;
 }
+
+service EchoService {
+    rpc Echo (EchoRequest) returns (EchoResponse) {}
+}
+
+message EchoRequest {
+    string name = 1;
+}
+
+message EchoResponse {
+    string echo = 1;
+}

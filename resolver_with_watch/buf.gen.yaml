@@ -1,0 +1,15 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: resolver-with-watch/proto
+plugins:
+  - plugin: go
+    out: proto
+    opt: paths=source_relative
+  - plugin: go-grpc
+    out: proto
+    opt: paths=source_relative
+  - plugin: buf.build/connectrpc/go
+    out: proto
+    opt: paths=source_relative

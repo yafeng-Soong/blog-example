@@ -8,8 +8,8 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"resolver-test/proto"
-	"resolver-test/register"
+	"resolver-with-watch/proto"
+	"resolver-with-watch/register"
 	"syscall"
 
 	"google.golang.org/grpc"
