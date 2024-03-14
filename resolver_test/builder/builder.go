@@ -17,7 +17,7 @@ func init() {
 }
 
 func buildCallbackfunc(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) {
-	var address []resolver.Address
+	var addrs []resolver.Address
 	serviceName := target.URL.Host
 	hosts := register.QueryAddress(serviceName)
 	if len(hosts) == 0 {
@@ -25,12 +25,12 @@ func buildCallbackfunc(target resolver.Target, cc resolver.ClientConn, opts reso
 	}
 
 	for _, host := range hosts {
-		address = append(address, resolver.Address{
+		addrs = append(addrs, resolver.Address{
 			Addr: host,
 		})
 	}
 
-	err := cc.UpdateState(resolver.State{Addresses: address})
+	err := cc.UpdateState(resolver.State{Addresses: addrs})
 	if err != nil {
 		log.Fatalf("UpdateState error: %s", err.Error())
 	}
