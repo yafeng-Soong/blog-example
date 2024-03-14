@@ -7,6 +7,7 @@ import (
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"google.golang.org/grpc/resolver"
 )
 
 var client *clientv3.Client
@@ -19,33 +20,47 @@ func InitRegister(addr string) {
 	}
 }
 
-func QueryAddress(serviceName string) (addrs []string) {
+func QueryAddress(serviceName string) map[string]resolver.Address {
 	resp, err := client.Get(context.Background(), serviceName, clientv3.WithPrefix())
 	if err != nil {
-		return
+		return nil
 	}
 
+	res := make(map[string]resolver.Address)
 	for _, kv := range resp.Kvs {
-		addrs = append(addrs, string(kv.Value))
+		res[string(kv.Key)] = resolver.Address{Addr: string(kv.Value)}
 	}
-	log.Println(fmt.Sprintf("found service %s in: ", serviceName), addrs)
-	return
+	log.Printf("found service %s in %v ", serviceName, res)
+	return res
 }
 
-func WatchAddress(ctx context.Context, serviceName string) {
-	for {
-		wch := client.Watch(ctx, serviceName, clientv3.WithPrefix())
-
-		for wres := range wch {
-			if err := wres.Err(); err != nil {
-				log.Println("wacth error: ", err.Error())
+func WatchAddress(ctx context.Context, cc resolver.ClientConn, serviceName string, wacthCallBack func(resolver.ClientConn, string, *clientv3.Event)) <-chan bool {
+	over := make(chan bool)
+	go func() {
+		for {
+			wch := client.Watch(ctx, serviceName, clientv3.WithPrefix())
+			select {
+			case <-ctx.Done():
+				log.Println("watch over")
+				over <- true
+				return
+			default:
 			}
 
-			for _, ev := range wres.Events {
-				log.Printf("Type: %s, Key: %s, Value: %s", ev.Type, ev.Kv.Key, ev.Kv.Value)
+			for wres := range wch {
+				if err := wres.Err(); err != nil {
+					log.Println("wacth error: ", err.Error())
+					continue
+				}
+
+				for _, ev := range wres.Events {
+					log.Printf("Watch registry event, Type: %s, Key: %s, Value: %s", ev.Type, ev.Kv.Key, ev.Kv.Value)
+					wacthCallBack(cc, serviceName, ev)
+				}
 			}
 		}
-	}
+	}()
+	return over
 }
 
 func Register(serviceName string, addr string) (string, error) {
@@ -56,4 +71,8 @@ func Register(serviceName string, addr string) (string, error) {
 
 func DeRegister(instanceName string) {
 	client.Delete(context.Background(), instanceName)
+}
+
+func CloseRegister() {
+	client.Close()
 }

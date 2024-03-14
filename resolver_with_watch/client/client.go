@@ -89,12 +89,9 @@ func initSayHelloConn() {
 }
 
 func getSayHeloClient() proto.HelloServiceClient {
-	if helloConn == nil {
-		once.Do(func() {
-			initSayHelloConn()
-			helloClient = proto.NewHelloServiceClient(helloConn)
-		})
-	}
-
+	once.Do(func() {
+		initSayHelloConn()
+		helloClient = proto.NewHelloServiceClient(helloConn)
+	})
 	return helloClient
 }
