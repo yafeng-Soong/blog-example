@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"resolver-with-watch/register"
 
@@ -11,7 +12,10 @@ import (
 	"google.golang.org/grpc/resolver/manual"
 )
 
-const Scheme = "costum"
+const (
+	Scheme    = "costum"
+	logPrefix = "[resolver] "
+)
 
 var (
 	cancel      context.CancelFunc
@@ -36,7 +40,7 @@ func (s *serviceInfoCache) GetAddresses(serviceName string) []resolver.Address {
 	var addrs []resolver.Address
 	info, ok := s.cache[serviceName]
 	if !ok {
-		log.Println("[error] did not watch service: ", serviceName)
+		log.Println(logPrefix, "error, did not watch service: ", serviceName)
 		return addrs
 	}
 
@@ -53,7 +57,7 @@ func (s *serviceInfoCache) SetAddresses(serviceName string, addrs map[string]res
 func (s *serviceInfoCache) UpdateAddress(serviceName string, ev *clientv3.Event) {
 	info, ok := s.cache[serviceName]
 	if !ok {
-		log.Println("[error] did not watch service: ", serviceName)
+		log.Println(logPrefix, "error, did not watch service: ", serviceName)
 		return
 	}
 
@@ -67,41 +71,56 @@ func (s *serviceInfoCache) UpdateAddress(serviceName string, ev *clientv3.Event)
 
 }
 
+func mapToString(addrs map[string]resolver.Address) string {
+	var tmp []string
+	for _, addr := range addrs {
+		tmp = append(tmp, addr.Addr)
+	}
+	return fmt.Sprint(tmp)
+}
+
+func sliceToString(addrs []resolver.Address) string {
+	var tmp []string
+	for _, addr := range addrs {
+		tmp = append(tmp, addr.Addr)
+	}
+	return fmt.Sprint(tmp)
+}
+
 func buildCallbackfunc(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) {
 	serviceName := target.URL.Host
 	hosts := register.QueryAddress(serviceName)
 	if len(hosts) == 0 {
-		log.Fatalf("service %s not found", target)
+		log.Fatalf("%sservice %s not found", logPrefix, target)
 	}
+	log.Printf("%sfound service %s in %v ", logPrefix, serviceName, mapToString(hosts))
 
 	serviceInfo.SetAddresses(serviceName, hosts)
 	addrs := serviceInfo.GetAddresses(serviceName)
 	err := cc.UpdateState(resolver.State{Addresses: addrs})
 	if err != nil {
-		log.Fatalf("UpdateState error: %s", err.Error())
+		log.Fatalf("%supdateState error: %s", logPrefix, err.Error())
 	}
 
-	// TODO watch address from etcd
 	var ctx context.Context
 	ctx, cancel = context.WithCancel(context.Background())
 	wacthOver = register.WatchAddress(ctx, cc, serviceName, watchCallBack)
 }
 
 func closeCallBack() {
-	// TODO cancel etcd watcher
 	if cancel != nil {
 		cancel()
+		<-wacthOver
+		log.Println(logPrefix, "closed")
 	}
-	<-wacthOver
-	log.Println("client closed")
 }
 
 func watchCallBack(cc resolver.ClientConn, serviceName string, ev *clientv3.Event) {
 	serviceInfo.UpdateAddress(serviceName, ev)
 	addrs := serviceInfo.GetAddresses(serviceName)
-	log.Printf("service: %s update, addrs: %v", serviceName, addrs)
+	log.Printf("%sservice %s update addrs: %s", logPrefix, serviceName, sliceToString(addrs))
 	err := cc.UpdateState(resolver.State{Addresses: addrs})
 	if err != nil {
-		log.Printf("UpdateState error: %s", err.Error())
+		log.Printf("%supdateState error: %s", logPrefix, err.Error())
 	}
 }

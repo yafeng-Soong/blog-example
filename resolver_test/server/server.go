@@ -25,8 +25,8 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	proto.RegisterHelloServiceServer(s, &helloServer{})
 	addr := listener.Addr().String()
+	proto.RegisterHelloServiceServer(s, &helloServer{addr: addr})
 	log.Println("hello-server serve at: ", addr)
 	register.InitRegister(*registerAddr)
 	ins, err := register.Register("hello-server", addr)
@@ -64,11 +64,12 @@ func getLocalIP() string {
 
 type helloServer struct {
 	proto.UnimplementedHelloServiceServer
+	addr string
 }
 
 func (s *helloServer) SayHello(ctx context.Context, req *proto.SayHelloRequest) (*proto.SayHelloResponse, error) {
 	log.Println("serve ", req.Name)
 	return &proto.SayHelloResponse{
-		Hello: "hello " + req.Name,
+		Hello: fmt.Sprintf("hello %s, from server %s", req.Name, s.addr),
 	}, nil
 }

@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/resolver"
 )
 
+const logPrefix = "[register] "
+
 var client *clientv3.Client
 
 func InitRegister(addr string) {
@@ -30,18 +32,20 @@ func QueryAddress(serviceName string) map[string]resolver.Address {
 	for _, kv := range resp.Kvs {
 		res[string(kv.Key)] = resolver.Address{Addr: string(kv.Value)}
 	}
-	log.Printf("found service %s in %v ", serviceName, res)
 	return res
 }
 
-func WatchAddress(ctx context.Context, cc resolver.ClientConn, serviceName string, wacthCallBack func(resolver.ClientConn, string, *clientv3.Event)) <-chan bool {
+func WatchAddress(ctx context.Context,
+	cc resolver.ClientConn, serviceName string,
+	wacthCallBack func(resolver.ClientConn, string, *clientv3.Event),
+) <-chan bool {
 	over := make(chan bool)
 	go func() {
 		for {
 			wch := client.Watch(ctx, serviceName, clientv3.WithPrefix())
 			select {
 			case <-ctx.Done():
-				log.Println("watch over")
+				log.Println(logPrefix, "watch over")
 				over <- true
 				return
 			default:
@@ -49,12 +53,12 @@ func WatchAddress(ctx context.Context, cc resolver.ClientConn, serviceName strin
 
 			for wres := range wch {
 				if err := wres.Err(); err != nil {
-					log.Println("wacth error: ", err.Error())
+					log.Println(logPrefix, "wacth error: ", err.Error())
 					continue
 				}
 
 				for _, ev := range wres.Events {
-					log.Printf("Watch registry event, Type: %s, Key: %s, Value: %s", ev.Type, ev.Kv.Key, ev.Kv.Value)
+					log.Printf("%swatch event, Type: %s, Key: %s, Value: %s", logPrefix, ev.Type, ev.Kv.Key, ev.Kv.Value)
 					wacthCallBack(cc, serviceName, ev)
 				}
 			}

@@ -70,7 +70,8 @@ func (s *echoServer) Echo(
 		return nil, err
 	}
 
-	echo := fmt.Sprintf("%s, now is %s", out.Hello, time.Now().String())
+	echo := fmt.Sprintf("%s, now is %s", out.Hello, time.Now().Format("2006-01-02 15:04:05.000"))
+	log.Printf("echo content: %s", echo)
 	return connect.NewResponse(&proto.EchoResponse{Echo: echo}), nil
 }
 
