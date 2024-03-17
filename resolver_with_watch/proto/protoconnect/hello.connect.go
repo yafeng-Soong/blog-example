@@ -23,8 +23,6 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// HelloServiceName is the fully-qualified name of the HelloService service.
 	HelloServiceName = "proto.HelloService"
-	// EchoServiceName is the fully-qualified name of the EchoService service.
-	EchoServiceName = "proto.EchoService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -37,16 +35,12 @@ const (
 const (
 	// HelloServiceSayHelloProcedure is the fully-qualified name of the HelloService's SayHello RPC.
 	HelloServiceSayHelloProcedure = "/proto.HelloService/SayHello"
-	// EchoServiceEchoProcedure is the fully-qualified name of the EchoService's Echo RPC.
-	EchoServiceEchoProcedure = "/proto.EchoService/Echo"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
 	helloServiceServiceDescriptor        = proto.File_hello_proto.Services().ByName("HelloService")
 	helloServiceSayHelloMethodDescriptor = helloServiceServiceDescriptor.Methods().ByName("SayHello")
-	echoServiceServiceDescriptor         = proto.File_hello_proto.Services().ByName("EchoService")
-	echoServiceEchoMethodDescriptor      = echoServiceServiceDescriptor.Methods().ByName("Echo")
 )
 
 // HelloServiceClient is a client for the proto.HelloService service.
@@ -115,72 +109,4 @@ type UnimplementedHelloServiceHandler struct{}
 
 func (UnimplementedHelloServiceHandler) SayHello(context.Context, *connect.Request[proto.SayHelloRequest]) (*connect.Response[proto.SayHelloResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("proto.HelloService.SayHello is not implemented"))
-}
-
-// EchoServiceClient is a client for the proto.EchoService service.
-type EchoServiceClient interface {
-	Echo(context.Context, *connect.Request[proto.EchoRequest]) (*connect.Response[proto.EchoResponse], error)
-}
-
-// NewEchoServiceClient constructs a client for the proto.EchoService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewEchoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EchoServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	return &echoServiceClient{
-		echo: connect.NewClient[proto.EchoRequest, proto.EchoResponse](
-			httpClient,
-			baseURL+EchoServiceEchoProcedure,
-			connect.WithSchema(echoServiceEchoMethodDescriptor),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// echoServiceClient implements EchoServiceClient.
-type echoServiceClient struct {
-	echo *connect.Client[proto.EchoRequest, proto.EchoResponse]
-}
-
-// Echo calls proto.EchoService.Echo.
-func (c *echoServiceClient) Echo(ctx context.Context, req *connect.Request[proto.EchoRequest]) (*connect.Response[proto.EchoResponse], error) {
-	return c.echo.CallUnary(ctx, req)
-}
-
-// EchoServiceHandler is an implementation of the proto.EchoService service.
-type EchoServiceHandler interface {
-	Echo(context.Context, *connect.Request[proto.EchoRequest]) (*connect.Response[proto.EchoResponse], error)
-}
-
-// NewEchoServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewEchoServiceHandler(svc EchoServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	echoServiceEchoHandler := connect.NewUnaryHandler(
-		EchoServiceEchoProcedure,
-		svc.Echo,
-		connect.WithSchema(echoServiceEchoMethodDescriptor),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/proto.EchoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case EchoServiceEchoProcedure:
-			echoServiceEchoHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
-}
-
-// UnimplementedEchoServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedEchoServiceHandler struct{}
-
-func (UnimplementedEchoServiceHandler) Echo(context.Context, *connect.Request[proto.EchoRequest]) (*connect.Response[proto.EchoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("proto.EchoService.Echo is not implemented"))
 }

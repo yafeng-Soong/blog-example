@@ -10,15 +10,11 @@ import (
 	"os/signal"
 	"resolver-with-watch/builder"
 	"resolver-with-watch/proto"
-	"resolver-with-watch/proto/protoconnect"
 	"resolver-with-watch/register"
 	"sync"
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -36,15 +32,10 @@ func main() {
 	registerAddr = flag.String("register", "localhost:2379", "")
 	flag.Parse()
 
-	mux := http.NewServeMux()
-	path, handler := protoconnect.NewEchoServiceHandler(&echoServer{})
-	mux.Handle(path, handler)
+	http.HandleFunc("/echo", echo)
 	go func() {
 		log.Printf("serve at :%d", *port)
-		http.ListenAndServe(
-			fmt.Sprintf(":%d", *port),
-			h2c.NewHandler(mux, &http2.Server{}),
-		)
+		http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
 	}()
 
 	signalChan := make(chan os.Signal, 1)
@@ -55,24 +46,23 @@ func main() {
 	}
 }
 
-type echoServer struct {
-	protoconnect.UnimplementedEchoServiceHandler
-}
+func echo(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		name = "tester"
+	}
 
-func (s *echoServer) Echo(
-	ctx context.Context,
-	req *connect.Request[proto.EchoRequest],
-) (*connect.Response[proto.EchoResponse], error) {
-	client := getSayHeloClient()
-	out, err := client.SayHello(context.Background(), &proto.SayHelloRequest{Name: req.Msg.Name})
+	sayHelloClient := getSayHeloClient()
+	out, err := sayHelloClient.SayHello(context.Background(), &proto.SayHelloRequest{Name: name})
 	if err != nil {
 		log.Println(err.Error())
-		return nil, err
+		w.Write([]byte(err.Error()))
+		return
 	}
 
 	echo := fmt.Sprintf("%s, now is %s", out.Hello, time.Now().Format("2006-01-02 15:04:05.000"))
 	log.Printf("echo content: %s", echo)
-	return connect.NewResponse(&proto.EchoResponse{Echo: echo}), nil
+	w.Write([]byte(echo))
 }
 
 func initSayHelloConn() {
