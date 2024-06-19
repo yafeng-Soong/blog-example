@@ -20,18 +20,19 @@ import (
 )
 
 var (
-	port         *int
-	registerAddr *string
+	port         = flag.Int("port", 8080, "")
+	registerAddr = flag.String("register", "localhost:2379", "")
 	once         sync.Once
 	helloConn    *grpc.ClientConn
 	helloClient  proto.HelloServiceClient
 )
 
-func main() {
-	port = flag.Int("port", 8080, "")
-	registerAddr = flag.String("register", "localhost:2379", "")
+func init() {
 	flag.Parse()
+	register.InitRegister(*registerAddr)
+}
 
+func main() {
 	http.HandleFunc("/echo", echo)
 	go func() {
 		log.Printf("serve at :%d", *port)
@@ -67,7 +68,6 @@ func echo(w http.ResponseWriter, r *http.Request) {
 
 func initSayHelloConn() {
 	target := fmt.Sprintf("%s://%s", builder.Scheme, "hello-server")
-	register.InitRegister(*registerAddr)
 	var err error
 	helloConn, err = grpc.Dial(
 		target,

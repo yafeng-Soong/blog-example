@@ -7,16 +7,24 @@ import (
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/resolver"
 )
 
-const logPrefix = "[register] "
+const (
+	dialTimeout = 5 * time.Second
+	logPrefix   = "[register] "
+)
 
 var client *clientv3.Client
 
 func InitRegister(addr string) {
 	var err error
-	client, err = clientv3.NewFromURL(addr)
+	client, err = clientv3.New(clientv3.Config{
+		Endpoints:   []string{addr},
+		DialTimeout: dialTimeout,
+		DialOptions: []grpc.DialOption{grpc.WithBlock()},
+	})
 	if err != nil {
 		panic(fmt.Sprintf("init etcd client error: %s", err.Error()))
 	}

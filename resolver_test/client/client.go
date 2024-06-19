@@ -14,13 +14,21 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func main() {
-	name := flag.String("name", "tester", "")
-	registerAddr := flag.String("register", "localhost:2379", "")
+var (
+	name         = flag.String("name", "tester", "")
+	registerAddr = flag.String("register", "localhost:2379", "")
+)
+
+func init() {
 	flag.Parse()
+}
+
+// go run client.go [-name echo_name] [-register 127.0.0.1:2379]
+func main() {
+	register.InitRegister(*registerAddr)
+	defer register.CloseRegister()
 
 	target := fmt.Sprintf("%s://%s", builder.Scheme, "hello-server")
-	register.InitRegister(*registerAddr)
 	conn, err := grpc.Dial(
 		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

@@ -15,11 +15,21 @@ import (
 	"google.golang.org/grpc"
 )
 
-func main() {
-	registerAddr := flag.String("register", "localhost:2379", "")
+var (
+	registerAddr = flag.String("register", "localhost:2379", "")
+	localhost    string
+)
+
+func init() {
 	flag.Parse()
-	ip := getLocalIP()
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", ip))
+	localhost = getLocalIP()
+}
+
+func main() {
+	register.InitRegister(*registerAddr)
+	defer register.CloseRegister()
+
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", localhost))
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -28,7 +38,7 @@ func main() {
 	addr := listener.Addr().String()
 	proto.RegisterHelloServiceServer(s, &helloServer{addr: addr})
 	log.Println("hello-server serve at: ", addr)
-	register.InitRegister(*registerAddr)
+
 	ins, err := register.Register("hello-server", addr)
 	if err != nil {
 		log.Fatal(err.Error())
