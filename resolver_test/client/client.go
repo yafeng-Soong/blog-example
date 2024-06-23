@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"resolver-test/builder"
 	"resolver-test/proto"
 	"resolver-test/register"
+	"resolver-test/resolver"
 	"time"
 
 	"google.golang.org/grpc"
@@ -28,7 +28,7 @@ func main() {
 	register.InitRegister(*registerAddr)
 	defer register.CloseRegister()
 
-	target := fmt.Sprintf("%s://%s", builder.Scheme, "hello-server")
+	target := fmt.Sprintf("%s://%s", resolver.Scheme, "hello-server")
 	conn, err := grpc.Dial(
 		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

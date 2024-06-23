@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"resolver-with-watch/builder"
 	"resolver-with-watch/proto"
 	"resolver-with-watch/register"
+	"resolver-with-watch/resolver"
 	"sync"
 	"syscall"
 	"time"
@@ -67,7 +67,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 }
 
 func initSayHelloConn() {
-	target := fmt.Sprintf("%s://%s", builder.Scheme, "hello-server")
+	target := fmt.Sprintf("%s://%s", resolver.Scheme, "hello-server")
 	var err error
 	helloConn, err = grpc.Dial(
 		target,
