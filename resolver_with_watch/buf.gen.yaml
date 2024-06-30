@@ -1,15 +1,15 @@
-version: v1
+version: v2
 managed:
   enabled: true
-  go_package_prefix:
-    default: resolver-with-watch/proto
+  override:
+    - file_option: go_package_prefix
+      value: resolver-with-watch/proto
 plugins:
-  - plugin: go
+  - local: protoc-gen-go
     out: proto
     opt: paths=source_relative
-  - plugin: go-grpc
+  - local: protoc-gen-go-grpc
     out: proto
     opt: paths=source_relative
-  - plugin: buf.build/connectrpc/go
-    out: proto
-    opt: paths=source_relative
+inputs:
+  - directory: proto

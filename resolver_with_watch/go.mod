@@ -3,7 +3,6 @@ module resolver-with-watch
 go 1.22.1
 
 require (
-	connectrpc.com/connect v1.15.0
 	go.etcd.io/etcd/api/v3 v3.5.12
 	go.etcd.io/etcd/client/v3 v3.5.12
 	google.golang.org/grpc v1.62.1
