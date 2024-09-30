@@ -40,22 +40,23 @@ func main() {
 	proto.RegisterHelloServiceServer(s, &helloServer{addr: addr})
 	log.Println("hello-server serve at: ", addr)
 
-	ins, err := register.Register("hello-server", addr)
-	if err != nil {
+	if err := register.Register("hello-server", addr); err != nil {
 		log.Fatal(err.Error())
 	}
 
-	defer register.DeRegister(ins)
+	defer register.DeRegister()
 
 	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		err = s.Serve(listener)
-		if err != nil {
-			log.Fatal(err.Error())
+		if err := s.Serve(listener); err != nil {
+			log.Println(err.Error())
+			close(signalChan)
 		}
 	}()
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
 	<-signalChan
+	s.GracefulStop()
 }
 
 func getLocalIP() string {

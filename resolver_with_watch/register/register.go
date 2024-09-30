@@ -16,7 +16,10 @@ const (
 	logPrefix   = "[register] "
 )
 
-var client *clientv3.Client
+var (
+	client       *clientv3.Client
+	instanceName string
+)
 
 func InitRegister(addr string) {
 	var err error
@@ -30,16 +33,18 @@ func InitRegister(addr string) {
 	}
 }
 
-func QueryAddress(serviceName string) map[string]resolver.Address {
+func QueryAddress(serviceName string) []resolver.Address {
 	resp, err := client.Get(context.Background(), serviceName, clientv3.WithPrefix())
 	if err != nil {
 		return nil
 	}
 
-	res := make(map[string]resolver.Address)
+	var res []resolver.Address
 	for _, kv := range resp.Kvs {
-		res[string(kv.Key)] = resolver.Address{Addr: string(kv.Value)}
+		addr := resolver.Address{Addr: string(kv.Value)}
+		res = append(res, addr)
 	}
+
 	return res
 }
 
@@ -50,7 +55,7 @@ func WatchAddress(ctx context.Context,
 	over := make(chan bool)
 	go func() {
 		for {
-			wch := client.Watch(ctx, serviceName, clientv3.WithPrefix())
+			wch := client.Watch(ctx, serviceName, clientv3.WithPrefix(), clientv3.WithPrevKV())
 			select {
 			case <-ctx.Done():
 				log.Println(logPrefix, "watch over")
@@ -75,13 +80,17 @@ func WatchAddress(ctx context.Context,
 	return over
 }
 
-func Register(serviceName string, addr string) (string, error) {
-	key := fmt.Sprintf("%s/%v", serviceName, time.Now().UnixNano())
-	_, err := client.Put(context.Background(), key, addr)
-	return key, err
+func Register(serviceName string, addr string) error {
+	instanceName = fmt.Sprintf("%s/%v", serviceName, time.Now().UnixNano())
+	_, err := client.Put(context.Background(), instanceName, addr)
+	return err
 }
 
-func DeRegister(instanceName string) {
+func DeRegister() {
+	if instanceName == "" {
+		return
+	}
+
 	client.Delete(context.Background(), instanceName)
 }
 

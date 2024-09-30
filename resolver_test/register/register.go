@@ -13,7 +13,8 @@ import (
 const dialTimeout = 5 * time.Second
 
 var (
-	client *clientv3.Client
+	client       *clientv3.Client
+	instanceName string
 )
 
 func InitRegister(addr string) {
@@ -41,13 +42,17 @@ func QueryAddress(serviceName string) (addrs []string) {
 	return
 }
 
-func Register(serviceName string, addr string) (string, error) {
-	key := fmt.Sprintf("%s/%v", serviceName, time.Now().UnixNano())
-	_, err := client.Put(context.Background(), key, addr)
-	return key, err
+func Register(serviceName string, addr string) error {
+	instanceName = fmt.Sprintf("%s/%v", serviceName, time.Now().UnixNano())
+	_, err := client.Put(context.Background(), instanceName, addr)
+	return err
 }
 
-func DeRegister(instanceName string) {
+func DeRegister() {
+	if instanceName == "" {
+		return
+	}
+
 	client.Delete(context.Background(), instanceName)
 }
 

@@ -24,7 +24,7 @@ var (
 )
 
 func init() {
-	serviceInfo = &serviceInfoCache{cache: make(map[string]map[string]resolver.Address)}
+	serviceInfo = &serviceInfoCache{cache: make(map[string][]resolver.Address)}
 	builder := manual.NewBuilderWithScheme(Scheme)
 	builder.BuildCallback = buildCallbackfunc
 	builder.CloseCallback = closeCallBack
@@ -33,50 +33,20 @@ func init() {
 
 // store addresses information of all kind of services, not noly hello-server.
 type serviceInfoCache struct {
-	cache map[string]map[string]resolver.Address
+	cache map[string][]resolver.Address
 }
 
 func (s *serviceInfoCache) GetAddresses(serviceName string) []resolver.Address {
-	var addrs []resolver.Address
-	info, ok := s.cache[serviceName]
+	addrs, ok := s.cache[serviceName]
 	if !ok {
-		log.Println(logPrefix, "error, did not watch service: ", serviceName)
-		return addrs
+		addrs = []resolver.Address{}
 	}
 
-	for _, k := range info {
-		addrs = append(addrs, k)
-	}
 	return addrs
 }
 
-func (s *serviceInfoCache) SetAddresses(serviceName string, addrs map[string]resolver.Address) {
+func (s *serviceInfoCache) UpdateAddress(serviceName string, addrs []resolver.Address) {
 	s.cache[serviceName] = addrs
-}
-
-func (s *serviceInfoCache) UpdateAddress(serviceName string, ev *clientv3.Event) {
-	info, ok := s.cache[serviceName]
-	if !ok {
-		log.Println(logPrefix, "error, did not watch service: ", serviceName)
-		return
-	}
-
-	instance := string(ev.Kv.Key)
-	switch ev.Type {
-	case mvccpb.PUT:
-		info[instance] = resolver.Address{Addr: string(ev.Kv.Value)}
-	case mvccpb.DELETE:
-		delete(info, instance)
-	}
-
-}
-
-func mapToString(addrs map[string]resolver.Address) string {
-	var tmp []string
-	for _, addr := range addrs {
-		tmp = append(tmp, addr.Addr)
-	}
-	return fmt.Sprint(tmp)
 }
 
 func sliceToString(addrs []resolver.Address) string {
@@ -90,16 +60,12 @@ func sliceToString(addrs []resolver.Address) string {
 func buildCallbackfunc(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) {
 	serviceName := target.URL.Host
 	hosts := register.QueryAddress(serviceName)
-	if len(hosts) == 0 {
-		log.Fatalf("%sservice %s not found", logPrefix, target)
-	}
-	log.Printf("%sfound service %s in %v ", logPrefix, serviceName, mapToString(hosts))
+	log.Printf("%sfound service %s in %v ", logPrefix, serviceName, sliceToString(hosts))
 
-	serviceInfo.SetAddresses(serviceName, hosts)
+	serviceInfo.UpdateAddress(serviceName, hosts)
 	addrs := serviceInfo.GetAddresses(serviceName)
-	err := cc.UpdateState(resolver.State{Addresses: addrs})
-	if err != nil {
-		log.Fatalf("%supdateState error: %s", logPrefix, err.Error())
+	if err := cc.UpdateState(resolver.State{Addresses: addrs}); err != nil {
+		log.Printf("%supdateState error: %s\n", logPrefix, err.Error())
 	}
 
 	var ctx context.Context
@@ -116,11 +82,35 @@ func closeCallBack() {
 }
 
 func watchCallBack(cc resolver.ClientConn, serviceName string, ev *clientv3.Event) {
-	serviceInfo.UpdateAddress(serviceName, ev)
 	addrs := serviceInfo.GetAddresses(serviceName)
-	log.Printf("%sservice %s update addrs: %s", logPrefix, serviceName, sliceToString(addrs))
-	err := cc.UpdateState(resolver.State{Addresses: addrs})
+	newAddrs := updateAddresses(addrs, ev)
+	serviceInfo.UpdateAddress(serviceName, newAddrs)
+	log.Printf("%sservice %s update addrs: %s", logPrefix, serviceName, sliceToString(newAddrs))
+	err := cc.UpdateState(resolver.State{Addresses: newAddrs})
 	if err != nil {
 		log.Printf("%supdateState error: %s", logPrefix, err.Error())
 	}
+}
+
+func updateAddresses(addrs []resolver.Address, ev *clientv3.Event) []resolver.Address {
+	addrMap := make(map[resolver.Address]struct{})
+	for _, addr := range addrs {
+		addrMap[addr] = struct{}{}
+	}
+
+	switch ev.Type {
+	case mvccpb.PUT:
+		key := resolver.Address{Addr: string(ev.Kv.Value)}
+		addrMap[key] = struct{}{}
+	case mvccpb.DELETE:
+		key := resolver.Address{Addr: string(ev.PrevKv.Value)}
+		delete(addrMap, key)
+	}
+
+	var res []resolver.Address
+	for addr := range addrMap {
+		res = append(res, addr)
+	}
+
+	return res
 }
