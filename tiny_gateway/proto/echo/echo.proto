@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package echo;
+
+option go_package = "grpc-echo/proto/echo";
+
+service EchoService {
+  // Echo simply returns the same message back.
+  rpc Echo(EchoRequest) returns (EchoResponse) {}
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+}
