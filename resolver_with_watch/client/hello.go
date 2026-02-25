@@ -47,7 +47,7 @@ func sayHello(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	echo := fmt.Sprintf("%s, now is %s", out.Hello, time.Now().Format("2006-01-02 15:04:05.000"))
+	echo := fmt.Sprintf("%s, now is %s", out.Message, time.Now().Format("2006-01-02 15:04:05.000"))
 	log.Printf("echo content: %s", echo)
 	w.Write([]byte(echo))
 }
@@ -62,7 +62,7 @@ func getSayHeloClient() (proto.HelloServiceClient, error) {
 
 	target := fmt.Sprintf("%s://%s", resolver.Scheme, "hello-server")
 	var err error
-	helloConn, err = grpc.Dial(
+	helloConn, err = grpc.NewClient(
 		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`),

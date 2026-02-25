@@ -82,6 +82,6 @@ type helloServer struct {
 func (s *helloServer) SayHello(ctx context.Context, req *proto.SayHelloRequest) (*proto.SayHelloResponse, error) {
 	log.Println("serve ", req.Name)
 	return &proto.SayHelloResponse{
-		Hello: fmt.Sprintf("hello %s, from server %s", req.Name, s.addr),
+		Message: fmt.Sprintf("hello %s, from server %s", req.Name, s.addr),
 	}, nil
 }

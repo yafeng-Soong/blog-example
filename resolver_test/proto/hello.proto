@@ -11,5 +11,5 @@ message SayHelloRequest {
 }
 
 message SayHelloResponse {
-    string hello = 1;
+    string message = 1;
 }

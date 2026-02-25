@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	Scheme    = "costum"
+	Scheme    = "custom"
 	logPrefix = "[resolver] "
 )
 

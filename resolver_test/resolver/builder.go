@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc/resolver/manual"
 )
 
-const Scheme = "costum"
+const Scheme = "custom"
 
 func init() {
 	builder := manual.NewBuilderWithScheme(Scheme)

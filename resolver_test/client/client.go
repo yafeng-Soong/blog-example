@@ -29,7 +29,7 @@ func main() {
 	defer register.CloseRegister()
 
 	target := fmt.Sprintf("%s://%s", resolver.Scheme, "hello-server")
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`),
@@ -47,7 +47,7 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
-		log.Println("echo: ", out.Hello)
+		log.Println("echo: ", out.Message)
 		time.Sleep(2 * time.Second)
 	}
 }
