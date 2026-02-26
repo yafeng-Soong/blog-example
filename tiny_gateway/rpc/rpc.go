@@ -3,6 +3,7 @@ package rpc
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,17 +15,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/dynamicpb"
 )
-
-// func init() {
-// 	var err error
-// 	conn, err = grpc.NewClient(
-// 		"192.168.0.122:46509",
-// 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-// 	)
-// 	if err != nil {
-// 		log.Fatalf("create gRPC client: %v", err)
-// 	}
-// }
 
 var connMap sync.Map
 
@@ -44,12 +34,24 @@ func getClient(serviceName string) (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	if val, ok := connMap.Load(serviceName); ok {
-		return val.(*grpc.ClientConn), nil
+	actual, loaded := connMap.LoadOrStore(serviceName, conn)
+	if loaded {
+		// other gorountine has stored conn for this service
+		// close current conn
+		_ = conn.Close()
+		return actual.(*grpc.ClientConn), nil
 	}
 
-	connMap.Store(serviceName, conn)
 	return conn, nil
+}
+
+func Clear() {
+	connMap.Range(func(key, value any) bool {
+		serviceName, conn := key.(string), value.(*grpc.ClientConn)
+		log.Println("[client manager] closing connection", serviceName)
+		_ = conn.Close()
+		return true
+	})
 }
 
 func HandleRPC(w http.ResponseWriter, r *http.Request) {

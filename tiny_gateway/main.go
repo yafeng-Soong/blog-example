@@ -4,6 +4,9 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"tiny-gateway/register"
 	"tiny-gateway/rpc"
 )
@@ -19,10 +22,17 @@ func main() {
 	defer register.CloseRegister()
 
 	http.HandleFunc("/", rpc.HandleRPC)
+	defer rpc.Clear()
 
-	log.Println("gRPC gateway is running on port 8080")
-	log.Println("Example request: curl -X POST http://localhost:8080/hello.HelloService/SayHello -d '{\"name\": \"Bob\"}'")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		log.Println("gRPC gateway is running on port 8080")
+		log.Println("Example request: curl -X POST http://localhost:8080/hello.HelloService/SayHello -d '{\"name\": \"Bob\"}'")
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	<-signalChan
 }
